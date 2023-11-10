@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #2c2f4f;
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+
+        #app {
+            max-width: 1000px;
+            margin: 50px auto;
+            background-color: #343a58;
+            border-radius: 50px;
+            padding: 40px;
+            overflow: hidden;
+            box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        #app h1 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 80%;
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 15px;
+            margin-right: 5%;
+            outline: none;
+        }
+
+        button {
+            width: 15%;
+            padding: 10px;
+            background-color: #464782;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            color: white;
+            font-size: 20px;
+            outline: none;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #8085a9;
+        }
+
+        .day {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .day:last-child {
+            border-bottom: none;
+        }
+
+        .day span {
+            font-size: 20px;
+        }
+
+        .day img {
+            width: 40px;
+            margin-right: 10px;
+        }
+
+        .temperature {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 95%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+
+
+        th,
+        td {
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background-color: #3d4265;
+        }
+
+        td {
+            text-align: center;
+        }
+
+        @media screen and (max-width: 480px) {
+            table {
+                width: 100%;
+            }
+        }
+
+        .suggestions {
+            border: 1px solid white;
+            max-height: 150px;
+            overflow-y: auto;
+            background-color: #343a58;
+            position: relative;
+            z-index: 1;
+        }
+
+        .suggestions div {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .suggestions div:hover {
+            background-color: #464782;
+        }
+
+        .humidity-warning {
+            background: linear-gradient(135deg, #af7010, #cd8c2c);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);
+            color: #333;
+
+        }
+
+        .humidity-warning span {
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .humidity-warning p {
+            margin: 10px 0 0;
+        }
+
+
+        .weather-advice {
+            background: linear-gradient(135deg, #4FC3F7, #81D4FA);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);
+            color: #333;
+
+        }
+
+        .weather-advice span {
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .weather-advice p {
+            margin: 10px 0 0;
+        }
+
+        .mask-advice {
+            background: linear-gradient(135deg, #e57373, #ef9a9a);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);
+            color: #333;
+
+        }
+
+        .mask-advice span {
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .mask-advice p {
+            margin: 10px 0 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app">
+        <h1>Weather Forecast</h1>
+        <div style="display: flex; justify-content: space-between;">
+            <input v-model="city" placeholder="Enter city name" @input="fetchCitySuggestions(city)" />
+            <button @click="fetchWeather">🔍</button>
+
+        </div>
+        <div v-if="suggestions && suggestions.length" class="suggestions">
+            <div v-for="suggestion in suggestions" @click="selectCity(suggestion)">
+                {{ suggestion }}
+            </div>
+        </div>
+
+
+        <div v-if="weather" class="weather-advice">
+            <span v-if="weatherAdvice.rainAdvice">🌧️ Upcoming Rain Alert!: {{ weatherAdvice.rainAdvice }}</span>
+
+        </div>
+
+        <div v-if="weather" class="weather-advice">
+            <span v-if="weatherAdvice.tempAdvice">
+                Temperature Advice:
+                <span v-if="weatherAdvice.tempAdvice.includes('cold')">❄️</span>
+                <span v-if="weatherAdvice.tempAdvice.includes('warm')">☀️</span>
+                <span v-if="weatherAdvice.tempAdvice.includes('hot')">🔥</span>
+                {{ weatherAdvice.tempAdvice }}
+            </span>
+        </div>
+
+
+        <div v-if="maskAdvice" class="mask-advice">
+            <span>😷 Air Quality Alert!: {{ maskAdvice }}</span>
+        </div>
+
+        <p v-if="errorMessage" style="color: red;">{{ errorMessage }}</p>
+
+        <div v-if="highHumidityWarning" class="humidity-warning">
+            <span>⚠️ High Humidity Alert!</span>
+            <p>Upcoming days are expected to have high humidity levels. This can lead to discomfort. It's advisable to
+                stay indoors during peak hours and ensure adequate hydration.</p>
+        </div>
+
+        <div v-if="weather">
+            <p v-if="anyRain" style="margin-top: 20px; padding: 10px; background-color: #FFEB3B; border-radius: 13px; padding: 16px;
+                margin-top: 25px; font-weight: bold; color: #333;">
+                Packing: Bring an umbrella.
+            </p>
+            <h2 style="text-align:center; margin-top: 20px;">Forecast for the next 5-days</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Average Temperature (°C)</th>
+                        <th>Min Temperature (°C)</th>
+                        <th>Max Temperature (°C)</th>
+                        <th>Wind Speed (m/s)</th>
+                        <th>Rainfall (mm)</th>
+                        <th>Average Humidity (%)</th>
+
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(day,index) in dailyWeather" :key="day.date">
+                        <td>{{ new Date(day.date * 1000).toLocaleDateString() }}</td>
+                        <td>{{ Math.round(day.avgTemp) }}</td>
+                        <td>{{ Math.round(day.minTemp) }}</td>
+
+                        <td>{{ Math.round(day.maxTemp) }}</td>
+                        <td>{{ Math.round(day.avgWindSpeed) }}</td>
+                        <td>{{ day.totalRain.toFixed(2) }}</td>
+                        <td>{{ Math.round(day.avgHumidity) }}</td>
+
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script>
+
+        new Vue({
+            el: '#app',
+            data: {
+                city: '',     // holds city name entered by user
+                weather: null,  // store fetched data for city
+                maskAdvice: null, // Holds advice related to air pollution masks
+                errorMessage: null,
+                suggestions: [],    // list of city suggestions
+                displayCity: ''    // City to display
+
+            },
+            // Watching city data property for changes
+            watch: {
+                city(newCity) {
+                    // Fetch suggestions when city input changes
+                    this.fetchCitySuggestions(newCity);
+                }
+            },
+            computed: {
+                anyRain() {
+                    // Check if any of the weather forecast entries have rain
+                    return this.weather.list.some(day => day.rain && day.rain['3h'] > 0);
+                },
+                weatherAdvice() {
+                    // Provides advice based on the average temperature and rain forecast
+                    const rainAdvice = this.anyRain
+                        ? "It is going to rain sometime in the next 5 days."
+                        : '';
+                    console.log('rain advice:', rainAdvice)
+
+
+                    const averageTempCelsius = this.weather.list.reduce((acc, day) => acc + day.main.temp, 0) / this.weather.list.length - 273.15;
+                    const roundedAverageTemp = Math.round(averageTempCelsius);
+                    let tempAdvice = '';
+                    if (roundedAverageTemp < 13) {
+                        tempAdvice = "It's cold. Bring a jacket.";
+                    } else if (roundedAverageTemp <= 23) {
+                        tempAdvice = "It's warm. Bring light clothes.";
+                    } else {
+                        tempAdvice = "It's hot. Pack for summer weather.";
+                    }
+                    return {
+                        rainAdvice,
+                        tempAdvice
+                    };
+
+                },
+                highHumidityWarning() {
+                    // Check if any of the forecast days have high average humidity
+                    return this.dailyWeather.some(day => day.avgHumidity > 70);
+                },
+
+                dailyWeather() {
+                    // Processes the weather forecast list into a structured format
+                    // Groups by the date and calculates daily averages for temperature, humidity, etc.
+                    if (!this.weather || !this.weather.list) return [];
+                    const grouped = {};
+                    this.weather.list.forEach(item => {
+                        const date = new Date(item.dt * 1000).toLocaleDateString();
+                        if (!grouped[date]) {
+                            grouped[date] = [];
+                        }
+                        grouped[date].push(item);
+                    });
+                    const results = [];
+                    for (const date in grouped) {
+                        const items = grouped[date];
+                        const minTemp = Math.min(...items.map(i => i.main.temp - 273.15));
+                        const maxTemp = Math.max(...items.map(i => i.main.temp - 273.15));
+                        const avgTemp = items.reduce((acc, i) => acc + (i.main.temp - 273.15), 0) / items.length;
+                        const avgWindSpeed = items.reduce((acc, i) => acc + i.wind.speed, 0) / items.length;
+                        const totalRain = parseFloat(items.reduce((acc, i) => acc + (i.rain ? i.rain['3h'] : 0), 0));
+                        const avgHumidity = items.reduce((acc, i) => acc + i.main.humidity, 0) / items.length;
+                        results.push({
+                            date: items[0].dt,
+                            minTemp,
+                            maxTemp,
+                            avgTemp,
+                            avgWindSpeed,
+                            totalRain,
+                            avgHumidity
+                        });
+                    }
+                    return results;
+                }
+            },
+            methods: {
+
+                // Define methods to fetch data and handle UI events
+                fetchWeather() {
+                    // Fetch the weather data based on the city name
+                    // Also processes the air pollution data to give advice on mask usage
+                    this.weather = null;
+                    this.maskAdvice = '';
+                    this.errorMessage = null; // Clear previous error messages.
+                    const encodedCity = encodeURIComponent(this.city); // Ensure the city name is URL-safe
+                    fetch(`/forecast/${encodedCity}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error("Failed to fetch weather data or city not found.");
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.error) {
+                                throw new Error(data.error);
+                            }
+                            this.weather = data.weather;
+                            this.weatherAdvice = this.weatherAdvice;
+                            const nextFiveDays = data.airPollution.list.slice(0, 5);
+                            let daysWithHighPollution = [];
+                            let daysWithVeryHighPollution = [];
+
+                            for (let i = 0; i < nextFiveDays.length; i++) {
+                                let day = nextFiveDays[i];
+                                let pmValue = day.components.pm2_5;
+
+                                let dayName = new Date(day.dt * 1000).toLocaleDateString('en-US', { weekday: 'long' });
+                                switch (true) {
+                                    case (pmValue > 10 && pmValue <= 35):
+                                        daysWithHighPollution.push(dayName);
+
+                                        break;
+                                    case (pmValue > 35):
+                                        daysWithVeryHighPollution.push(dayName);
+                                        console.log(this.maskAdvice);
+
+
+                                        break;
+                                }
+                            }
+                            if (daysWithHighPollution.length) {
+                                this.maskAdvice = `Warning PM_25 levels are high on ${daysWithHighPollution.join(", ")}. Please consider wearing a mask.`;
+                                console.log(this.maskAdvice);
+                            }
+
+                            if (daysWithVeryHighPollution.length) {
+                                this.maskAdvice = `Warning PM_25 levels are very high on ${daysWithVeryHighPollution.join(", ")}. Please wear a mask.`;
+                                console.log(this.maskAdvice);
+                            }
+                        })
+                        .catch(error => {
+                            this.weather = null;
+                            this.maskAdvice = '';
+                            this.errorMessage = error.message || "An unknown error occurred.";
+                            console.error("Error fetching weather data: ", error);
+                        });
+                },
+                fetchCitySuggestions(query) {
+                    // Fetch suggestions for the city name as the user types
+                    if (query.length < 2) { // Fetch suggestions only if there are at least 2 characters
+                        this.suggestions = [];
+                        return;
+                    }
+                    fetch(`/city-suggestions/${encodeURIComponent(query)}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error("Failed to fetch city suggestions.");
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            this.suggestions = data;
+                        })
+                        .catch(error => {
+                            this.suggestions = [];
+                            console.error("Error fetching city suggestions: ", error);
+                        });
+
+
+                },
+                // Select a city from the suggestion list
+                // Clears the suggestion list and fetches the weather for the selected city
+                selectCity(suggestion) {
+                    this.city = suggestion;
+                    this.suggestions = []; // Clear suggestions after city is selected
+                    this.fetchWeather();
+                }
+            }
+        });
+
+
+
+    </script>
+
+
+
+
+</body>
+
+</html>
